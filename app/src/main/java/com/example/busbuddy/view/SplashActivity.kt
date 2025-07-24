@@ -1,5 +1,6 @@
 package com.example.busbuddy.view
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -16,7 +17,6 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.material3.Text
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import com.example.busbuddy.R
 import kotlinx.coroutines.delay
 
@@ -26,7 +26,7 @@ class SplashActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             SplashScreen {
-                startActivity(Intent(this, LoginActivity::class.java))
+                startActivity(Intent(this@SplashActivity, LoginActivity::class.java))
                 finish()
             }
         }
@@ -36,8 +36,8 @@ class SplashActivity : ComponentActivity() {
 @Composable
 fun SplashScreen(onTimeout: () -> Unit) {
     LaunchedEffect(Unit) {
-        delay(2000)
-        onTimeout()
+        delay(2000)  // Splash screen delay
+        onTimeout()  // After delay, this will run startActivity + finish
     }
 
     Box(
@@ -54,10 +54,4 @@ fun SplashScreen(onTimeout: () -> Unit) {
             Text("Bus Booking System", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1B5E20))
         }
     }
-}
-
-@Preview(showSystemUi = true)
-@Composable
-fun PreviewSplash() {
-    SplashScreen(onTimeout = {})
 }

@@ -57,11 +57,16 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended")
 
     // Import the Firebase BOM
-    implementation(platform("com.google.firebase:firebase-bom:32.7.0")) // replace with latest stable
+    implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
 
 // Now use these without versions
     implementation("com.google.firebase:firebase-auth-ktx")
     implementation("com.google.firebase:firebase-firestore-ktx")
+
+
+    implementation("com.google.android.material:material:1.12.0")
+
+
 
 
     // Compose essentials

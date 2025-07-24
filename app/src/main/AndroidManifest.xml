@@ -2,6 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -12,17 +14,39 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Busbuddy"
         tools:targetApi="31">
+
+        <!-- SplashActivity is the LAUNCHER -->
         <activity
-            android:name=".MainActivity"
+            android:name=".view.SplashActivity"
             android:exported="true"
-            android:label="@string/app_name"
-            android:theme="@style/Theme.Busbuddy">
+            android:theme="@style/Theme.Busbuddy.NoActionBar"> <!-- Recommended: Theme for splash -->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-    </application>
 
+        <!-- LoginActivity: Launched by SplashActivity -->
+        <activity
+            android:name=".view.LoginActivity"
+            android:exported="false" /> <!-- Not exported as it's launched internally -->
+        <!-- You can add a specific theme for LoginActivity if needed:
+        android:theme="@style/Theme.Busbuddy.NoActionBar" -->
+
+        <!-- MainActivity: Presumably launched after successful login -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="false" /> <!-- Typically not exported if launched after login -->
+        <!-- You can add a specific theme for MainActivity if needed:
+        android:theme="@style/Theme.Busbuddy" -->
+
+        <!-- Other activities in your application -->
+        <activity android:name=".view.RegisterActivity" android:exported="false" />
+        <activity android:name=".view.BookingListActivity" android:exported="false" />
+        <activity android:name=".view.AddBookingActivity" android:exported="false" />
+        <activity android:name=".view.EditBookingActivity" android:exported="false" />
+        <activity android:name=".view.EditProfileActivity" android:exported="false" />
+        <activity android:name=".view.ForgotPasswordActivity" android:exported="false" />
+
+    </application>
 </manifest>

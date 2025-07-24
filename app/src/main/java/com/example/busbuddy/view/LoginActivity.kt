@@ -8,10 +8,16 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.annotation.OptIn
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -32,6 +38,11 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.example.busbuddy.R
 import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.semantics.password
+import kotlin.text.clear
+import kotlin.text.isNotBlank
 
 
 class LoginActivity : ComponentActivity() {
@@ -48,118 +59,118 @@ class LoginActivity : ComponentActivity() {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun LoginBody(paddingValues: PaddingValues) {
-    val context = LocalContext.current
-    val activity = context as? Activity
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3Api::class)
+@androidx.compose.runtime.Composable
+fun LoginBody(paddingValues: androidx.compose.foundation.layout.PaddingValues) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val activity = context as? android.app.Activity // Keep this if you need the Activity instance for finish()
 
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var passwordVisible by remember { mutableStateOf(false) }
-    var rememberMe by remember { mutableStateOf(false) }
+    var email by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("") }
+    var password by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("") }
+    var passwordVisible by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    var rememberMe by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
 
     val sharedPreferences = context.getSharedPreferences("UserPrefs", Context.MODE_PRIVATE)
     val editor = sharedPreferences.edit()
 
-    LaunchedEffect(Unit) {
+    androidx.compose.runtime.LaunchedEffect(Unit) {
         email = sharedPreferences.getString("email", "") ?: ""
         password = sharedPreferences.getString("password", "") ?: ""
     }
 
-    Column(
-        modifier = Modifier
+    androidx.compose.foundation.layout.Column(
+        modifier = androidx.compose.ui.Modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(androidx.compose.ui.graphics.Color.White)
             .padding(paddingValues)
             .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally
     ) {
-        Spacer(modifier = Modifier.height(40.dp))
+        // ... (Image, Spacer, Email TextField, Password TextField, Remember me Row - all unchanged) ...
 
-        Image(
-            painter = painterResource(id = R.drawable.logo),
+        androidx.compose.foundation.layout.Spacer(modifier = androidx.compose.ui.Modifier.height(40.dp))
+
+        androidx.compose.foundation.Image(
+            painter = androidx.compose.ui.res.painterResource(id = R.drawable.logo),
             contentDescription = "Bus Logo",
-            modifier = Modifier.size(120.dp)
+            modifier = androidx.compose.ui.Modifier.size(120.dp)
         )
 
-        Spacer(modifier = Modifier.height(40.dp))
+        androidx.compose.foundation.layout.Spacer(modifier = androidx.compose.ui.Modifier.height(40.dp))
 
-        OutlinedTextField(
+        androidx.compose.material3.OutlinedTextField(
             value = email,
             onValueChange = { email = it },
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text("Email") },
-            leadingIcon = { Icon(Icons.Filled.Email, contentDescription = "Email Icon") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-            shape = RoundedCornerShape(12.dp),
-            colors = TextFieldDefaults.outlinedTextFieldColors(
-                focusedBorderColor = Color.Green,
-                unfocusedBorderColor = Color.Gray,
-                containerColor = Color(0xFFF0F0F0)
+            modifier = androidx.compose.ui.Modifier.fillMaxWidth(),
+            label = { androidx.compose.material3.Text("Email") },
+            leadingIcon = { androidx.compose.material3.Icon(Icons.Filled.Email, contentDescription = "Email Icon") },
+            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Email),
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+            colors = androidx.compose.material3.TextFieldDefaults.outlinedTextFieldColors(
+                focusedBorderColor = androidx.compose.ui.graphics.Color.Green,
+                unfocusedBorderColor = androidx.compose.ui.graphics.Color.Gray,
+                containerColor = androidx.compose.ui.graphics.Color(0xFFF0F0F0)
             )
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        androidx.compose.foundation.layout.Spacer(modifier = androidx.compose.ui.Modifier.height(16.dp))
 
-        OutlinedTextField(
+        androidx.compose.material3.OutlinedTextField(
             value = password,
             onValueChange = { password = it },
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text("Password") },
-            leadingIcon = { Icon(Icons.Filled.Lock, contentDescription = "Password Icon") },
+            modifier = androidx.compose.ui.Modifier.fillMaxWidth(),
+            label = { androidx.compose.material3.Text("Password") },
+            leadingIcon = { androidx.compose.material3.Icon(Icons.Filled.Lock, contentDescription = "Password Icon") },
             trailingIcon = {
                 val image = if (passwordVisible)
                     Icons.Filled.VisibilityOff
                 else Icons.Filled.Visibility
 
-                Icon(
+                androidx.compose.material3.Icon(
                     imageVector = image,
                     contentDescription = if (passwordVisible) "Hide password" else "Show password",
-                    modifier = Modifier.clickable { passwordVisible = !passwordVisible }
+                    modifier = androidx.compose.ui.Modifier.clickable { passwordVisible = !passwordVisible }
                 )
             },
-            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-            shape = RoundedCornerShape(12.dp),
-            colors = TextFieldDefaults.outlinedTextFieldColors(
-                focusedBorderColor = Color.Green,
-                unfocusedBorderColor = Color.Gray,
-                containerColor = Color(0xFFF0F0F0)
+            visualTransformation = if (passwordVisible) androidx.compose.ui.text.input.VisualTransformation.None else androidx.compose.ui.text.input.PasswordVisualTransformation(),
+            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Password),
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+            colors = androidx.compose.material3.TextFieldDefaults.outlinedTextFieldColors(
+                focusedBorderColor = androidx.compose.ui.graphics.Color.Green,
+                unfocusedBorderColor = androidx.compose.ui.graphics.Color.Gray,
+                containerColor = androidx.compose.ui.graphics.Color(0xFFF0F0F0)
             )
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        androidx.compose.foundation.layout.Spacer(modifier = androidx.compose.ui.Modifier.height(16.dp))
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+        androidx.compose.foundation.layout.Row(
+            modifier = androidx.compose.ui.Modifier.fillMaxWidth(),
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+            horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Checkbox(
+            androidx.compose.foundation.layout.Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                androidx.compose.material3.Checkbox(
                     checked = rememberMe,
                     onCheckedChange = { rememberMe = it },
-                    colors = CheckboxDefaults.colors(
-                        checkedColor = Color.Green,
-                        checkmarkColor = Color.White
+                    colors = androidx.compose.material3.CheckboxDefaults.colors(
+                        checkedColor = androidx.compose.ui.graphics.Color.Green,
+                        checkmarkColor = androidx.compose.ui.graphics.Color.White
                     )
                 )
-                Text(text = "Remember me")
+                androidx.compose.material3.Text(text = "Remember me")
             }
 
-            Text(
+            androidx.compose.material3.Text(
                 text = "Forgot Password?",
-                color = Color.Blue,
-                modifier = Modifier.clickable {
+                color = androidx.compose.ui.graphics.Color.Blue,
+                modifier = androidx.compose.ui.Modifier.clickable {
                     Toast.makeText(context, "Forgot Password clicked", Toast.LENGTH_SHORT).show()
-                }
-            )
-        }
 
-        Spacer(modifier = Modifier.height(24.dp))
 
-        Button(
+        androidx.compose.foundation.layout.Spacer(modifier = androidx.compose.ui.Modifier.height(24.dp))
+
+        androidx.compose.material3.Button(
             onClick = {
                 if (rememberMe) {
                     editor.putString("email", email)
@@ -172,31 +183,34 @@ fun LoginBody(paddingValues: PaddingValues) {
 
                 if (email.isNotBlank() && password.isNotBlank()) {
                     Toast.makeText(context, "Login successful", Toast.LENGTH_SHORT).show()
-                    // Navigate to another activity if needed
-                    // context.startActivity(Intent(context, HomeActivity::class.java))
-                    activity?.finish()
+                    // TODO: Replace with actual navigation to your main app screen after login
+                    // Example: context.startActivity(Intent(context, MainActivity::class.java))
+                    activity?.finish() // Finishes LoginActivity
                 } else {
                     Toast.makeText(context, "Please enter email and password", Toast.LENGTH_SHORT).show()
                 }
             },
-            modifier = Modifier
+            modifier = androidx.compose.ui.Modifier
                 .fillMaxWidth()
                 .height(50.dp),
-            shape = RoundedCornerShape(12.dp)
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp)
         ) {
-            Text(text = "Login")
+            androidx.compose.material3.Text(text = "Login")
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        androidx.compose.foundation.layout.Spacer(modifier = androidx.compose.ui.Modifier.height(16.dp))
 
-        Text(
+        androidx.compose.material3.Text(
             text = "Don't have an account? Register",
-            color = Color.Blue,
-            modifier = Modifier
-                .align(Alignment.End)
+            color = androidx.compose.ui.graphics.Color.Blue,
+            modifier = androidx.compose.ui.Modifier
+                .align(androidx.compose.ui.Alignment.End)
                 .clickable {
-                    Toast.makeText(context, "Register clicked", Toast.LENGTH_SHORT).show()
-                }
+
+                    Toast.makeText(context, "Register clicked", Toast.LENGTH_SHORT).show() // You can keep the Toast
+                    val intent = Intent(context, RegisterActivity::class.java)
+                    context.startActivity(intent)
+
         )
     }
 }
