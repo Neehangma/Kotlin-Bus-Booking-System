@@ -4,20 +4,16 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.annotation.OptIn
+import androidx.activity.result.launch
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -27,22 +23,30 @@ import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import com.example.busbuddy.MainActivity // Assuming this is your main activity after login
 import com.example.busbuddy.R
-import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.semantics.password
-import kotlin.text.clear
-import kotlin.text.isNotBlank
+import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.launch
+
+// Ensure these are imported if they are in different sub-packages of .view
+// import com.example.busbuddy.view.ForgotPasswordActivity
+// import com.example.busbuddy.view.RegisterActivity
+
+// You would typically have a ViewModel for login logic
+// import com.example.busbuddy.viewmodel.UserViewModel
+// import com.example.busbuddy.repository.UserRepositoryImpl
 
 
 class LoginActivity : ComponentActivity() {
@@ -50,167 +54,271 @@ class LoginActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            MaterialTheme {
-                Scaffold { padding ->
-                    LoginBody(padding)
+            MaterialTheme { // Apply your app's theme
+                Scaffold(
+                    // Scaffold is good for top/bottom bars, FABs, and managing insets
+                    // For a full-screen background image, ensure padding is handled correctly
+                    // by the content that sits ON TOP of the background.
+                ) { innerPadding -> // This padding is for content INSIDE the Scaffold
+                    LoginScreen(
+                        // Pass the padding to LoginScreen if its content needs to be inset
+                        // from system bars. If LoginScreen is a full Box with its own
+                        // background taking the whole screen, its *foreground* content
+                        // might need this padding.
+                        // For this full-screen background setup, the padding is applied
+                        // to the root Box of LoginScreen.
+                        modifier = Modifier.padding(innerPadding)
+                    )
                 }
             }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3Api::class)
-@androidx.compose.runtime.Composable
-fun LoginBody(paddingValues: androidx.compose.foundation.layout.PaddingValues) {
-    val context = androidx.compose.ui.platform.LocalContext.current
-    val activity = context as? android.app.Activity // Keep this if you need the Activity instance for finish()
+@OptIn(ExperimentalMaterial3Api::class, DelicateCoroutinesApi::class)
+@Composable
+fun LoginScreen(modifier: Modifier = Modifier) { // Accept modifier
+    val context = LocalContext.current
+    val activity = context as? Activity
 
-    var email by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("") }
-    var password by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("") }
-    var passwordVisible by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
-    var rememberMe by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    var passwordVisible by remember { mutableStateOf(false) }
+    var rememberMe by remember { mutableStateOf(false) }
+    var isLoading by remember { mutableStateOf(false) } // For loading state
 
+    // ViewModel should ideally handle SharedPreferences for testability and separation
+    // val userViewModel = remember { UserViewModel(UserRepositoryImpl(context)) } // Example
     val sharedPreferences = context.getSharedPreferences("UserPrefs", Context.MODE_PRIVATE)
-    val editor = sharedPreferences.edit()
 
-    androidx.compose.runtime.LaunchedEffect(Unit) {
+    LaunchedEffect(Unit) {
+        // Load saved preferences
         email = sharedPreferences.getString("email", "") ?: ""
-        password = sharedPreferences.getString("password", "") ?: ""
+        rememberMe = sharedPreferences.getBoolean("rememberMe", false)
+        if (rememberMe) {
+            // Only load password if remember me was explicitly set, and be mindful of security.
+            // Storing raw passwords in SharedPreferences is not recommended for production.
+            // Consider secure alternatives like Android Keystore for sensitive data if needed,
+            // or better, use authentication tokens.
+            password = sharedPreferences.getString("password", "") ?: ""
+        }
+        Log.d("LoginScreen", "Loaded Prefs: email='${email}', rememberMe=$rememberMe")
     }
 
-    androidx.compose.foundation.layout.Column(
-        modifier = androidx.compose.ui.Modifier
-            .fillMaxSize()
-            .background(androidx.compose.ui.graphics.Color.White)
-            .padding(paddingValues)
-            .padding(16.dp),
-        horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally
+    Box(
+        modifier = modifier.fillMaxSize()
     ) {
-        // ... (Image, Spacer, Email TextField, Password TextField, Remember me Row - all unchanged) ...
-
-        androidx.compose.foundation.layout.Spacer(modifier = androidx.compose.ui.Modifier.height(40.dp))
-
-        androidx.compose.foundation.Image(
-            painter = androidx.compose.ui.res.painterResource(id = R.drawable.logo),
-            contentDescription = "Bus Logo",
-            modifier = androidx.compose.ui.Modifier.size(120.dp)
+        // 1. Background Image
+        Image(
+            painter = painterResource(id = R.drawable.login),
+            contentDescription = null, // Decorative
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize()
         )
 
-        androidx.compose.foundation.layout.Spacer(modifier = androidx.compose.ui.Modifier.height(40.dp))
-
-        androidx.compose.material3.OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
-            modifier = androidx.compose.ui.Modifier.fillMaxWidth(),
-            label = { androidx.compose.material3.Text("Email") },
-            leadingIcon = { androidx.compose.material3.Icon(Icons.Filled.Email, contentDescription = "Email Icon") },
-            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Email),
-            shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
-            colors = androidx.compose.material3.TextFieldDefaults.outlinedTextFieldColors(
-                focusedBorderColor = androidx.compose.ui.graphics.Color.Green,
-                unfocusedBorderColor = androidx.compose.ui.graphics.Color.Gray,
-                containerColor = androidx.compose.ui.graphics.Color(0xFFF0F0F0)
-            )
+        // 2. Dark Overlay for contrast
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.8f))
         )
 
-        androidx.compose.foundation.layout.Spacer(modifier = androidx.compose.ui.Modifier.height(16.dp))
-
-        androidx.compose.material3.OutlinedTextField(
-            value = password,
-            onValueChange = { password = it },
-            modifier = androidx.compose.ui.Modifier.fillMaxWidth(),
-            label = { androidx.compose.material3.Text("Password") },
-            leadingIcon = { androidx.compose.material3.Icon(Icons.Filled.Lock, contentDescription = "Password Icon") },
-            trailingIcon = {
-                val image = if (passwordVisible)
-                    Icons.Filled.VisibilityOff
-                else Icons.Filled.Visibility
-
-                androidx.compose.material3.Icon(
-                    imageVector = image,
-                    contentDescription = if (passwordVisible) "Hide password" else "Show password",
-                    modifier = androidx.compose.ui.Modifier.clickable { passwordVisible = !passwordVisible }
-                )
-            },
-            visualTransformation = if (passwordVisible) androidx.compose.ui.text.input.VisualTransformation.None else androidx.compose.ui.text.input.PasswordVisualTransformation(),
-            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Password),
-            shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
-            colors = androidx.compose.material3.TextFieldDefaults.outlinedTextFieldColors(
-                focusedBorderColor = androidx.compose.ui.graphics.Color.Green,
-                unfocusedBorderColor = androidx.compose.ui.graphics.Color.Gray,
-                containerColor = androidx.compose.ui.graphics.Color(0xFFF0F0F0)
-            )
-        )
-
-        androidx.compose.foundation.layout.Spacer(modifier = androidx.compose.ui.Modifier.height(16.dp))
-
-        androidx.compose.foundation.layout.Row(
-            modifier = androidx.compose.ui.Modifier.fillMaxWidth(),
-            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
-            horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween
+        // 3. Login Content Column
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                // Padding for the content elements themselves, inside the overlay
+                .padding(horizontal = 24.dp, vertical = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center // Center content vertically
         ) {
-            androidx.compose.foundation.layout.Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                androidx.compose.material3.Checkbox(
-                    checked = rememberMe,
-                    onCheckedChange = { rememberMe = it },
-                    colors = androidx.compose.material3.CheckboxDefaults.colors(
-                        checkedColor = androidx.compose.ui.graphics.Color.Green,
-                        checkmarkColor = androidx.compose.ui.graphics.Color.White
+            
+
+            // Email Field
+            OutlinedTextField(
+                value = email,
+                onValueChange = { email = it },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Email") },
+                leadingIcon = { Icon(Icons.Filled.Email, contentDescription = "Email Icon") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                shape = RoundedCornerShape(12.dp),
+                singleLine = true,
+                colors = loginTextFieldColors() // Extracted for reuse
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Password Field
+            OutlinedTextField(
+                value = password,
+                onValueChange = { password = it },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Password") },
+                leadingIcon = { Icon(Icons.Filled.Lock, contentDescription = "Password Icon") },
+                trailingIcon = {
+                    val icon = if (passwordVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility
+                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = if (passwordVisible) "Hide Password" else "Show Password",
+                            tint = Color.LightGray // Adjust tint if needed
+                        )
+                    }
+                },
+                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                shape = RoundedCornerShape(12.dp),
+                singleLine = true,
+                colors = loginTextFieldColors() // Extracted for reuse
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Remember Me & Forgot Password Row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.clickable { rememberMe = !rememberMe } // Make whole row clickable
+                ) {
+                    Checkbox(
+                        checked = rememberMe,
+                        onCheckedChange = { rememberMe = it },
+                        colors = CheckboxDefaults.colors(
+                            checkedColor = Color(0xFF00C853), // Your green
+                            uncheckedColor = Color.LightGray,
+                            checkmarkColor = Color.Black // Or Color.White if green is dark enough
+                        )
                     )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Remember me", color = Color.White)
+                }
+
+                Text(
+                    text = "Forgot Password?",
+                    color = Color.Cyan, // Or a theme color
+                    modifier = Modifier.clickable {
+                        context.startActivity(Intent(context, ForgotPasswordActivity::class.java))
+                    }
                 )
-                androidx.compose.material3.Text(text = "Remember me")
             }
 
-            androidx.compose.material3.Text(
-                text = "Forgot Password?",
-                color = androidx.compose.ui.graphics.Color.Blue,
-                modifier = androidx.compose.ui.Modifier.clickable {
-                    Toast.makeText(context, "Forgot Password clicked", Toast.LENGTH_SHORT).show()
+            Spacer(modifier = Modifier.height(24.dp))
 
+            // Login Button
+            Button(
+                onClick = {
+                    if (email.isBlank() || password.isBlank()) {
+                        Toast.makeText(context, "Please enter email and password", Toast.LENGTH_SHORT).show()
+                        return@Button
+                    }
 
-        androidx.compose.foundation.layout.Spacer(modifier = androidx.compose.ui.Modifier.height(24.dp))
-
-        androidx.compose.material3.Button(
-            onClick = {
-                if (rememberMe) {
-                    editor.putString("email", email)
-                    editor.putString("password", password)
+                    isLoading = true
+                    val editor = sharedPreferences.edit()
+                    if (rememberMe) {
+                        editor.putString("email", email)
+                        editor.putString("password", password) // Be cautious
+                        editor.putBoolean("rememberMe", true)
+                        Log.d("LoginScreen", "Saved Prefs: email='${email}', rememberMe=true")
+                    } else {
+                        editor.remove("email")
+                        editor.remove("password")
+                        editor.putBoolean("rememberMe", false)
+                        Log.d("LoginScreen", "Cleared email/password, rememberMe=false in Prefs")
+                    }
                     editor.apply()
-                } else {
-                    editor.clear()
-                    editor.apply()
-                }
 
-                if (email.isNotBlank() && password.isNotBlank()) {
-                    Toast.makeText(context, "Login successful", Toast.LENGTH_SHORT).show()
-                    // TODO: Replace with actual navigation to your main app screen after login
-                    // Example: context.startActivity(Intent(context, MainActivity::class.java))
-                    activity?.finish() // Finishes LoginActivity
+                    // --- !!! TODO: Replace with actual ViewModel-based login !!! ---
+
+                    kotlinx.coroutines.GlobalScope.launch { // Use ViewModelScope in ViewModel
+                        kotlinx.coroutines.delay(1500) // Simulate network/processing delay
+                        val loginSuccess = true // Simulate actual login result
+
+                        activity?.runOnUiThread {
+                            isLoading = false
+                            if (loginSuccess) {
+                                Toast.makeText(context, "Login successful!", Toast.LENGTH_SHORT).show()
+                                val intent = Intent(context, MainActivity::class.java).apply {
+                                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                                }
+                                context.startActivity(intent)
+                                activity.finish() // Finish LoginActivity
+                            } else {
+                                Toast.makeText(context, "Login failed. Invalid credentials.", Toast.LENGTH_LONG).show()
+                            }
+                        }
+                    }
+                    // --- End of TODO section ---
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                shape = RoundedCornerShape(12.dp),
+                enabled = !isLoading,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF00C853), // Your green
+                    disabledContainerColor = Color.Gray
+                )
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = Color.White, // Progress indicator color on button
+                        strokeWidth = 2.dp
+                    )
                 } else {
-                    Toast.makeText(context, "Please enter email and password", Toast.LENGTH_SHORT).show()
+                    Text("Login", color = Color.Black) // Text color on button
                 }
-            },
-            modifier = androidx.compose.ui.Modifier
-                .fillMaxWidth()
-                .height(50.dp),
-            shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp)
-        ) {
-            androidx.compose.material3.Text(text = "Login")
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Register Text
+            Row(
+                modifier = Modifier.clickable {
+                    context.startActivity(Intent(context, RegisterActivity::class.java))
+                },
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Don't have an account? ",
+                    color = Color.White
+                )
+                Text(
+                    text = "Register",
+                    color = Color.Cyan // Or a theme color
+                )
+            }
         }
-
-        androidx.compose.foundation.layout.Spacer(modifier = androidx.compose.ui.Modifier.height(16.dp))
-
-        androidx.compose.material3.Text(
-            text = "Don't have an account? Register",
-            color = androidx.compose.ui.graphics.Color.Blue,
-            modifier = androidx.compose.ui.Modifier
-                .align(androidx.compose.ui.Alignment.End)
-                .clickable {
-
-                    Toast.makeText(context, "Register clicked", Toast.LENGTH_SHORT).show() // You can keep the Toast
-                    val intent = Intent(context, RegisterActivity::class.java)
-                    context.startActivity(intent)
-
-        )
     }
+}
+
+// Helper Composable for TextField colors to reduce repetition
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun loginTextFieldColors(): TextFieldColors {
+    return TextFieldDefaults.outlinedTextFieldColors(
+        focusedTextColor = Color.White,
+        unfocusedTextColor = Color.White,
+        disabledTextColor = Color.Gray,
+        cursorColor = Color.Cyan,
+        focusedBorderColor = Color.Cyan,
+        unfocusedBorderColor = Color.Gray,
+        disabledBorderColor = Color.DarkGray,
+        focusedLabelColor = Color.Cyan,
+        unfocusedLabelColor = Color.LightGray,
+        disabledLabelColor = Color.DarkGray,
+        containerColor = Color.Black.copy(alpha = 0.25f), // Slightly more opaque
+        // For leading/trailing icons if you want specific colors:
+        focusedLeadingIconColor = Color.Cyan,
+        unfocusedLeadingIconColor = Color.LightGray,
+        disabledLeadingIconColor = Color.DarkGray,
+        focusedTrailingIconColor = Color.Cyan,
+        unfocusedTrailingIconColor = Color.LightGray,
+        disabledTrailingIconColor = Color.DarkGray
+    )
 }
